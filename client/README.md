@@ -3,7 +3,7 @@ A library that supports RAML to API specification.
 It reads a RAML file and creates javascript interface to interact with the API  without using any additional libraries.
 
 ### TL;DR
-Short paragraph of an idea. Currently API provider has to create an SDK library to be used oon a web page and programers need to use them in order to use the API without making raw requests to the endpoints. I believe that it's wrong approach. When you use couple of different API providers on your website you will end up with downloading megabites of libraties and you'll drown with different SDK's libraries structures. This project is an idea of how to end this nonsense. It creates an unified interface to interact with different APIs based on [RAML] specification.
+Short paragraph of the big idea. Currently API provider has to create an SDK library to be used oon a web page and programers need to use them in order to use the API without making raw requests to the endpoints. I believe that it's wrong approach. When you use couple of different API providers on your website you will end up with downloading megabites of libraties and you'll drown in different SDK's libraries structures. This project is an idea of how to end this nonsense. It creates an unified interface to interact with different APIs based on [RAML] specification.
 
 ## Registering an API (required!)
 Include this library into your project.
@@ -12,15 +12,14 @@ Include this library into your project.
 <script src="path/to/raml-to-api-client.js"></script>
 ```
 
-Basically thre library scans for the `<link>` tag in the head of the page with `rel` attribute
+The library scans for the `<link>` tag in the head of the page with `rel` attribute
 set to `alternate` and `type` set to `application/raml`:
 
 ```html
 <link href="/path/to/api.raml" rel="alternate" type="application/raml" title="api-name"/>
 ```
-In this way the website will tell the library that this website is using an API defined in the
-`${currentDomain}/path/to/api.raml` file.
-The API file doesn't need to be in the same domain. It also doesn't need to be owned by the website authort. It is just a source file of (any) API definition that will be registered in the browser.
+This way the website tells the library that it's using an API defined in the `${currentDomain}/path/to/api.raml` file.
+The API file doesn't need to be in the same domain. It also doesn't need to be owned by the website author. It is just a source file of (any) API definition that will be registered in the browser.
 
 
 ## `navigator.requestApiProvider()`
@@ -35,10 +34,10 @@ navigator.requestApiProvider('api-name').then((api) => {
 });
 ```
 
-## Using the API.
-The promise result of calling of the `navigator.requestApiProvider()` function is an API object representing a structure of endpoints and methods available in the API.
+## Using the API
+The promise returned by the `navigator.requestApiProvider()` result with an API object representing a structure of endpoints and methods available in the API.
 
-While endpoint is an object, methods are represented as a function that can be called (performing an API request).
+While endpoint is an object, methods are represented as functions that can be called to perform an API request.
 
 Consider following example:
 ```yaml
@@ -51,9 +50,10 @@ mediaType:  application/json
   /code:
     get:
 ```
-It says that the GitHub API has one endpoint `/search` and it has one sub-endpoint `/code` with one method `GET`. To call `/search/code` you'd:
+It says that the GitHub API has one endpoint `/search` and it has one sub-endpoint `/code` with one method `GET`. To call `GET /search/code` you'd use the following code:
 
 ```javascript
+// github name is registered in the <link> element
 navigator.requestApiProvider('github').then((api) => {
   api.search.code.get().then((results) => {});
 }).catch((e) => {
@@ -87,7 +87,7 @@ mediaType:  application/json
 ```
 
 The same endpoint but this time it requires to provide a `q` parameter and optionally `sort` and `order` parameters.
-If the endpoint can accept parameter(s) the method function will accept an argument. It will read a `queryParameters` property of this object and set them to the API call.
+If the endpoint can accept parameter(s) the method function will accept an argument. It will read a `queryParameters` property of this object and set it to the API call.
 
 ```javascript
 let params = {
@@ -117,7 +117,7 @@ api.gists.gistId(1234).get().then((gist) => {}).catch((e) => {});
 
 ### Payload
 
-Now the following example:
+Now consider following example:
 ```yaml
 #%RAML 1.0
 title: GitHub API
@@ -136,7 +136,7 @@ mediaType:  application/json
               description: Text of the comment to the gist.
               required: true
 ```
-It will use the same `params` obect to initialize the function call but payload is read from the `body` property:
+It will use the same `params` object to initialize the function call but payload is read from the `body` property:
 
 ```javascript
 let params = {
@@ -175,7 +175,7 @@ If the API requires a parameter (either in body, URI or queryParameter) it must 
 They can be provided in the request but the API provider will not reject the call if they are not present in the request. Basically nothing happens.
 
 #### Undefined parameters
-If a parameter that is not required has been passed to the request (either to the payload or `queryParameters`) then the API provider **will use them in the request**. However a warning will be printed to the console informing that the undefined property has been set.
+If a parameter that is not defined in the [RAML] source file has been passed to the request (either to the payload or `queryParameters`) then the API provider **will use them in the request**. However a warning will be printed to the console informing that the undefined property has been set.
 API provider can't be sure how's the API react on this parameters and the request may be rejected. So if you planing to set parameters that aren't defined in the API spec file then always do error checking.
 
 ## Authentication
@@ -186,13 +186,13 @@ api.auth.authorize(optType, optOptions);
 ```
 Depending on a [RAML] definition this function accpet different set of arguments (described below).
 
-If the API allows only one type of authorization (e.g. `oauth-2-0`) then `optType` is not required and can be replaced by the `optOptions` parameter (if any options are allowed). To check which auth interfaces are available you can check a `api.auth.types` array to get the list of available auth types:
+If the API allows only one type of authorization (e.g. `oauth-2-0`) then `optType` is not required and can be replaced by the `optOptions` parameter (if any options are allowed). To debug which auth interfaces are available you can check an `api.auth.types` array to get the list of available auth types:
 ```javascript
 console.log(api.auth.types);
 // ["oauth-2-0", "oauth-1-0", "basic"]
 ```
 This property will always return an array even if none of auth types is defined.
-Names in the list is a `securityScheme` defined key and can vary. You can use it to access auth configuration (which is read only):
+Names in the list are `securityScheme`'s defined keys and can vary. You can use it to access auth configuration (which is read only):
 ```javascript
 console.log(api.auth['oauth-2-0']);
 // {
@@ -206,7 +206,7 @@ console.log(api.auth['oauth-2-0']);
 If the API defines more than one `securityScheme` and the `optType` is not set or is not a string then it will use first available type to authorize the user. But you can always pass the type key (one of `api.auth.types` array elements) to select a specific type.
 
 ### OAuth 2.0
-Don't requires any parameters. Optional parameter is `scope` where the API defined scope can be overriten. It will open new window/tab with defined endpoints.
+Don't requires any parameters. Optional parameter is `scope` where the API defined scope can be overrated. It will open new window/tab with defined endpoint.
 ```javascript
 api.auth.authorize({
   'scope': ['shuttle', 'cargo-bay-1']
@@ -232,7 +232,7 @@ See the example [RAML] file: https://github.com/raml-org/raml-spec/blob/master/v
 In this case you can set `SpecialToken` parameter by calling:
 ```javascript
 api.auth.setParams('x-name-of-the-type',{
-  'SpecialToken': 'I\'m a doctor, not an OAuth server.'
+  'SpecialToken': 'I am a doctor, not an OAuth server.'
 });
 ```
 This function accepts two arguments. First is the name of the configuration and second is the name of the property to set. The library will determine if it should be set in `headers` or `queryParameters` section.
@@ -254,13 +254,13 @@ api.globals.headers = {
 console.log(api.globals.headers);
 // {'x-ship-id': 'NCC-1701'}
 ```
-The value of this header will be used in all methods that accepts this header.
+The value of this header will be used in all methods that accept this header.
 
 ### Global `queryParameters`
-Same as above but it set the value for query parameters. Function to call is `api.globals.queryParameters = parametersObject`.
+Same as above but it set the value for query parameters. Setter to call is `api.globals.queryParameters = parametersObject`.
 
 ## Types
-The library includes basic information about types (object, resources) used by the API endpoinds if they are defined in the [RAML] file. If gives a convinient way of generating an empty (avlues) object for given method `createType()`. This function is attached to every method function that accepts a type. So in the gits comments example:
+The library includes information about types (object, resources) used by the API endpoinds if they are defined in the [RAML] file. If gives a convinient way of generating an empty (values) object for given method by calling `createType()` on a method object. This function is attached to every method function that accepts a type. So in the gits comments example:
 
 ```yaml
 #%RAML 1.0
@@ -293,7 +293,7 @@ When you make a request with payload the library **will not check for type speci
 ## Console documentation
 Finally the API structure is nothing without the documentation. Most of objects will have a `docs` property with a value defined in the source [RAML] file. You can just print it in a console to see object's documentation.
 
-From the gist example above, colling the code below till print the documentation.
+From the gist example above, calling the code below till print the documentation.
 ```javascript
 api.gists.gistId(1234).comments.docs
 // List of comments in the Gist.
