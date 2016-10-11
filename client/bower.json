@@ -1,0 +1,31 @@
+{
+  "name": "raml-to-api-client",
+  "version": "0.0.5",
+  "description": "A web client for RAML to API project.",
+  "authors": [
+    "The Advanced REST client authors <arc@mulesoft.com>"
+  ],
+  "keywords": [],
+  "private": true,
+  "main": [
+    "main.js"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:advanced-rest-client/raml-to-api.git"
+  },
+  "dependencies": {
+  },
+  "devDependencies": {
+    "web-component-tester": "^4.0.0",
+    "test-fixture": "PolymerElements/test-fixture#^1.0.0",
+    "webcomponentsjs": "webcomponents/webcomponentsjs#^0.7.0"
+  },
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tasks"
+  ]
+}

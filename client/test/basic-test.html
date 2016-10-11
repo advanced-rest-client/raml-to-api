@@ -1,0 +1,26 @@
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+
+    <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
+    <script src="../../web-component-tester/browser.js"></script>
+    <script src="../libs/api-registration.js"></script>
+    <link href="https://rawgit.com/advanced-rest-client/raml-example-api/master/api.raml" rel="alternate" type="application/raml" title="api-name"/>
+  </head>
+  <body>
+
+    <script>
+    /* global suite, test, ApiRegistration, assert*/
+    suite('basic', function() {
+      test('should register API provider', function(done) {
+        var reg = new ApiRegistration();
+        document.addEventListener('api-providers-registered', () => {
+          assert.isObject(reg._providers);
+          done();
+        });
+      });
+    });
+    </script>
+  </body>
+</html>
