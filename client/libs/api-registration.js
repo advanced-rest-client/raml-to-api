@@ -2,14 +2,18 @@
 
 class ApiRegistration {
   constructor() {
-    this._target = navigator;
+    this._target = window.navigator;
     this._providers = {};
     this.parserEndpoint = 'https://raml-to-api.appspot.com/?api=';
-    this.registerProvider();
-    this.lookupProviders();
+    this.registerProviderApi();
+    this.lookupProviders().then(() => {
+      console.log(Object.getOwnPropertyNames(this._providers['api-name']));
+      this.fire('api-providers-registered', {});
+    });
   }
+
   // Registers `requestApiProvider` function in the navigator namespace.
-  registerProvider() {
+  registerProviderApi() {
     if ('requestApiProvider' in this._target) {
       return;
     }
@@ -23,6 +27,15 @@ class ApiRegistration {
 
     }
 
+  }
+
+  fire(eventName, detail) {
+    var event = new CustomEvent(eventName, {
+      detail: detail,
+      bubbles: true,
+      cancelable: true
+    });
+    document.body.dispatchEvent(event);
   }
 
   lookupProviders() {
@@ -41,16 +54,17 @@ class ApiRegistration {
 
   _registerApiProvider(opts) {
     return this._getApi(opts.src)
-    .then((apiJson) => {
-      if (!apiJson) {
-        return false;
-      }
-      if (apiJson.error) {
-        console.warn(apiJson.message);
-        return false;
-      }
-      return this._createApiObject(opts.name, apiJson);
-    });
+      .then((apiJson) => {
+        if (!apiJson) {
+          return false;
+        }
+        if (apiJson.error) {
+          console.warn(apiJson.message);
+          return false;
+        }
+        console.log('aaaaaaaaaaaaaaaaaaaaa');
+        return this._createApiObject(opts.name, apiJson);
+      });
   }
 
   _getApi(src) {
@@ -64,9 +78,6 @@ class ApiRegistration {
       redirect: 'follow'
     };
     return fetch(url, init).then((response) => {
-      // if (!response.ok) {
-      //   return null;
-      // }
       return response.json();
     });
   }
@@ -82,24 +93,46 @@ class ApiRegistration {
   }
 
   _createApiObject(name, api) {
-    var obj = {};
-    this._createStructure(api.specification, obj);
-    this._providers[name] = obj;
+    this._providers[name] = this._createStructure(api.specification, api.specification.resources);
   }
 
-  _createStructure(api, src) {
-    if (!('resources' in api)) {
+  _createStructure(root, resources, dest) {
+    if (!resources) {
       return;
     }
-    api.resources.forEach((res) => {
-      let name = res.relativeUri.replace(/\/g/, '');
+    dest = dest || {};
+
+    resources.forEach((res) => {
+      let name = res.relativeUri.replace(/\//g, '');
       let properties = {};
       let desc = res.description || '';
       properties.docs = desc;
-
-      src[name] = {};
+      if ('methods' in res) {
+        this._registerMethods(root, res.methods, properties);
+      }
+      if ('resources' in res) {
+        this._createStructure(root, res.resources, properties);
+      }
+      console.log('properties', properties);
+      dest[name] = properties;
     });
+    return dest;
+  }
+
+  _registerMethods(src, methods, dest) {
+    if (!methods || !methods.length) {
+      return;
+    }
+    for (let i = 0, len = methods.length; i < len; i++) {
+      let method = methods[i];
+      let httpMethod = method.method;
+      dest[httpMethod] = function() {
+
+      };
+      dest[httpMethod].docs = method.description || '';
+    }
   }
 }
-
-exports.ApiRegistration = ApiRegistration;
+if (window.exports) {
+  exports.ApiRegistration = ApiRegistration;
+}
