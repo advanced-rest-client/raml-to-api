@@ -4,10 +4,14 @@ class ApiRegistration {
   constructor() {
     this._target = window.navigator;
     this._providers = {};
+    this._ramls = {};
+    this._pendingPromises = [];
     this.parserEndpoint = 'https://raml-to-api.appspot.com/?api=';
+    this._apiLookupReady = false;
     this.registerProviderApi();
     this.lookupProviders().then(() => {
-      console.log(Object.getOwnPropertyNames(this._providers['api-name']));
+      this._apiLookupReady = true;
+      this._firePending();
       this.fire('api-providers-registered', {});
     });
   }
@@ -24,9 +28,31 @@ class ApiRegistration {
    */
   requestApiProvider(apiName) {
     if (!apiName) {
-
+      throw new Error('API name is required.');
     }
-
+    if (!this._apiLookupReady) {
+      return new Promise((resolve, reject) => {
+        this._pendingPromises.push({
+          name: apiName,
+          resolve: resolve,
+          reject: reject
+        });
+      });
+    }
+    if (apiName in this._providers) {
+      return Promise.resolve(this._providers[apiName]);
+    }
+    return Promise.reject(new Error('API ' + apiName  + ' is unknown.'));
+  }
+  
+  _firePending() {
+    this._pendingPromises.forEach((i) => {
+      if (i.name in this._providers) {
+        i.resolve(this._providers[i.name]);
+      } else {
+        i.reject(new Error('API ' + i.name  + ' is unknown.'));
+      }
+    });
   }
 
   fire(eventName, detail) {
@@ -62,7 +88,6 @@ class ApiRegistration {
           console.warn(apiJson.message);
           return false;
         }
-        console.log('aaaaaaaaaaaaaaaaaaaaa');
         return this._createApiObject(opts.name, apiJson);
       });
   }
@@ -93,46 +118,9 @@ class ApiRegistration {
   }
 
   _createApiObject(name, api) {
-    this._providers[name] = this._createStructure(api.specification, api.specification.resources);
-  }
-
-  _createStructure(root, resources, dest) {
-    if (!resources) {
-      return;
-    }
-    dest = dest || {};
-
-    resources.forEach((res) => {
-      let name = res.relativeUri.replace(/\//g, '');
-      let properties = {};
-      let desc = res.description || '';
-      properties.docs = desc;
-      if ('methods' in res) {
-        this._registerMethods(root, res.methods, properties);
-      }
-      if ('resources' in res) {
-        this._createStructure(root, res.resources, properties);
-      }
-      console.log('properties', properties);
-      dest[name] = properties;
-    });
-    return dest;
-  }
-
-  _registerMethods(src, methods, dest) {
-    if (!methods || !methods.length) {
-      return;
-    }
-    for (let i = 0, len = methods.length; i < len; i++) {
-      let method = methods[i];
-      let httpMethod = method.method;
-      dest[httpMethod] = function() {
-
-      };
-      dest[httpMethod].docs = method.description || '';
-    }
+    this._providers[name] = new Api(api.specification);
+    this._ramls[name] = api;
   }
 }
-if (window.exports) {
-  exports.ApiRegistration = ApiRegistration;
-}
+window.exports = window.exports || window;
+window.exports.ApiRegistration = ApiRegistration;
